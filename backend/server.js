@@ -14,7 +14,19 @@ connectDB();
 
 const app = express();
 
-app.use(cors());
+// ✅ CORS Configuration (Netlify + Localhost)
+app.use(
+  cors({
+    origin: [
+      'https://uplife-26.netlify.app',
+      'http://localhost:5173',
+      'http://localhost:3000',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // Routes
