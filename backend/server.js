@@ -21,6 +21,7 @@ connectDB();
 
 const app = express();
 
+<<<<<<< HEAD
 // ── Middleware: CORS Configuration ──────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5173', // Default port for React Vite
@@ -41,6 +42,21 @@ app.use(cors({
 }));
 
 // Body parser
+=======
+// ✅ CORS Configuration (Netlify + Localhost)
+app.use(
+  cors({
+    origin: [
+      'https://uplife-26.netlify.app',
+      'http://localhost:5173',
+      'http://localhost:3000',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+  })
+);
+
+>>>>>>> 1df245ac382142b174eca6f58dc67a556f625106
 app.use(express.json());
 
 // ── Routes ──────────────────────────────────────────────────────────────────
