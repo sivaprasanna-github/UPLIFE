@@ -9,27 +9,33 @@ import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
 import DashboardSelection from "./pages/DashboardSelection";
 
-// --- ADMIN PAGES ---
-// Admin Loan (Corrected paths)
+// ADMIN
+import AdminDashboard from "./pages/insurance/AdminDashboard";
+
+// LOAN
 import LoanHome from "./pages/loan/LoanHome";
 import CreateEmployee from "./pages/loan/CreateEmployee";
+import AdminLoanClients from "./pages/loan/AdminLoanClients";
+import AdminCreateLoanUser from "./pages/loan/AdminCreateLoanUser";
 
-// Admin Insurance (Corrected paths & filenames)
+// INSURANCE
 import InsuranceHome from "./pages/insurance/InsuranceHome";
 import CreateAgent from "./pages/insurance/CreateAgent";
-import AdminDashboard from "./pages/insurance/AdminDashboard";
-import CustomersList from "./pages/insurance/Agentcustomerslist"; // Fixed name
+import AdminInsuranceCustomers from "./pages/insurance/AdminInsuranceCustomers";
+import AdminCreateInsuranceCustomer from "./pages/insurance/AdminCreateInsuranceCustomer";
 import Claims from "./pages/insurance/Claims";
-import Notice from "./pages/insurance/Noticelist"; // Fixed name
+import Notice from "./pages/insurance/Noticelist";
 
-// --- EMPLOYEE PAGES (LOAN) ---
+// EMPLOYEE
 import EmployeeHome from "./pages/employee/EmployeeHome";
+import EmployeeAddUser from "./pages/employee/EmployeeAddUser";
 import ClientList from "./pages/employee/ClientList";
 import LoanApplications from "./pages/employee/LoanApplications";
 import EmployeeReports from "./pages/employee/EmployeeReports";
 
-// --- AGENT PAGES (INSURANCE) ---
+// AGENT
 import AgentHome from "./pages/agent/AgentHome";
+import AgentAddCustomer from "./pages/agent/AgentAddCustomer";
 import MyPolicies from "./pages/agent/MyPolicies";
 import SubmitClaim from "./pages/agent/SubmitClaim";
 import Commissions from "./pages/agent/Commissions";
@@ -40,50 +46,55 @@ function App() {
       <Toaster position="top-right" reverseOrder={false} />
 
       <Routes>
-        {/* Default Route */}
+        {/* Default */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Public Route */}
+        {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* ADMIN: Selection Screen (No Sidebar) */}
+        {/* Dashboard */}
         <Route path="/dashboard" element={<DashboardSelection />} />
 
-        {/* PROTECTED ROUTES (Wrapped in Layout WITH dynamic Sidebar) */}
+        {/* ✅ FIX: ADMIN ROUTE */}
+        <Route path="/admin" element={<Navigate to="/dashboard/insurance/admin" replace />} />
+
+        {/* Layout Routes */}
         <Route element={<Layout />}>
 
-          {/* === ADMIN LOAN === */}
+          {/* ADMIN LOAN */}
           <Route path="/dashboard/loan" element={<LoanHome />} />
           <Route path="/dashboard/loan/create-employee" element={<CreateEmployee />} />
+          <Route path="/dashboard/loan/users" element={<AdminCreateLoanUser />} />
+          <Route path="/dashboard/loan/clients" element={<AdminLoanClients />} />
 
-          {/* === ADMIN INSURANCE === */}
+          {/* ADMIN INSURANCE */}
           <Route path="/dashboard/insurance" element={<InsuranceHome />} />
           <Route path="/dashboard/insurance/create-agent" element={<CreateAgent />} />
           <Route path="/dashboard/insurance/admin" element={<AdminDashboard />} />
-          
-          {/* Admin Insurance Customers */}
-          <Route path="/dashboard/insurance/customers" element={<CustomersList />} />
-          <Route path="/customers/view/:custId" element={<CustomersList />} />
-          <Route path="/customers/edit/:custId" element={<CustomersList />} />
-
-          {/* Admin Insurance Claims & Notices */}
+          <Route path="/dashboard/insurance/customers/manage" element={<AdminCreateInsuranceCustomer />} />
+          <Route path="/dashboard/insurance/customers" element={<AdminInsuranceCustomers />} />
           <Route path="/dashboard/insurance/claims" element={<Claims />} />
           <Route path="/claims/:id" element={<Claims />} />
           <Route path="/dashboard/insurance/notices" element={<Notice />} />
 
-          {/* === EMPLOYEE (LOAN DEPT) === */}
+          {/* EMPLOYEE */}
           <Route path="/employee/home" element={<EmployeeHome />} />
+          <Route path="/employee/add-user" element={<EmployeeAddUser />} />
           <Route path="/employee/clients" element={<ClientList />} />
           <Route path="/employee/applications" element={<LoanApplications />} />
           <Route path="/employee/reports" element={<EmployeeReports />} />
 
-          {/* === AGENT (INSURANCE DEPT) === */}
+          {/* AGENT */}
           <Route path="/agent/home" element={<AgentHome />} />
+          <Route path="/agent/add-customer" element={<AgentAddCustomer />} />
           <Route path="/agent/policies" element={<MyPolicies />} />
           <Route path="/agent/claims" element={<SubmitClaim />} />
           <Route path="/agent/commissions" element={<Commissions />} />
 
         </Route>
+
+        {/* ✅ Optional: Catch-all (no more errors) */}
+        <Route path="*" element={<h1>404 - Page Not Found</h1>} />
       </Routes>
     </div>
   );
