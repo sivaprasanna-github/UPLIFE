@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, UserPlus, ArrowLeft, Shield, Users,
   FileText, Bell, Briefcase, DollarSign, Umbrella,
-  PieChart, ClipboardList, UserCheck
+  PieChart, ClipboardList, UserCheck, Activity
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -20,7 +20,8 @@ const Sidebar = () => {
     { path: "/employee/home",         name: "Dashboard",       icon: <LayoutDashboard size={20} /> },
     { path: "/employee/add-user",     name: "New Application", icon: <UserPlus size={20} /> },
     { path: "/employee/clients",      name: "My Clients",      icon: <Users size={20} /> },
-    // { path: "/employee/applications", name: "Loan Apps",       icon: <Briefcase size={20} /> },
+    // NEW: Added Loan Status tracking for employee
+    { path: "/employee/loan-status",  name: "Loan Status",     icon: <Activity size={20} /> }, 
     { path: "/employee/reports",      name: "Reports",         icon: <PieChart size={20} /> },
   ];
 
@@ -39,11 +40,12 @@ const Sidebar = () => {
     { path: "/dashboard/loan/create-employee", name: "Create Employee",  icon: <UserPlus size={20} /> },
     { path: "/dashboard/loan/users",           name: "Loan Users",       icon: <UserCheck size={20} /> },
     { path: "/dashboard/loan/clients",         name: "All Applications", icon: <ClipboardList size={20} /> },
+    // NEW: Added Loan Management/Status for admin
+    { path: "/dashboard/loan/management",      name: "Manage Loans",     icon: <Briefcase size={20} /> },
   ];
 
   // ── Admin Insurance Links ───────────────────────────────────────────────────
   const adminInsuranceLinks = [
-    // { path: "/dashboard/insurance",                  name: "Insurance Overview", icon: <LayoutDashboard size={20} /> },
     { path: "/dashboard/insurance/admin",            name: "Admin Dashboard",    icon: <Shield size={20} /> },
     { path: "/dashboard/insurance/create-agent",     name: "Create Agent",       icon: <UserPlus size={20} /> },
     { path: "/dashboard/insurance/customers/manage", name: "Ins. Customers",     icon: <UserCheck size={20} /> },

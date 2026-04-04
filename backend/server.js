@@ -15,16 +15,16 @@ import insuranceCustomerRoutes from './routes/InsuranceCustomerRoutes.js';
 import loanRoutes from './routes/loanRoutes.js';
 import loanUserRoutes from './routes/LoanUserRoutes.js';
 import insuranceNoticeRoutes from './routes/insuranceNoticeRoutes.js';
+
+// ✅ NEW: Import the new loan application tracking routes
+import loanRoutesUsers from './routes/loanRoutesusers.js';
+
 // Load Environment Variables & Connect to DB
 dotenv.config();
 connectDB();
 
 const app = express();
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> f1b9358a04cb8ee7e39d4503dcd56ef311be72d8
 // ── Middleware: CORS Configuration ──────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5173', // Default port for React Vite
@@ -45,24 +45,6 @@ app.use(cors({
 }));
 
 // Body parser
-<<<<<<< HEAD
-=======
-=======
-// ✅ CORS Configuration (Netlify + Localhost)
-app.use(
-  cors({
-    origin: [
-      'https://uplife-26.netlify.app',
-      'http://localhost:5173',
-      'http://localhost:3000',
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true,
-  })
-);
-
->>>>>>> 1df245ac382142b174eca6f58dc67a556f625106
->>>>>>> f1b9358a04cb8ee7e39d4503dcd56ef311be72d8
 app.use(express.json());
 
 // ── Routes ──────────────────────────────────────────────────────────────────
@@ -72,14 +54,19 @@ app.use('/api/employee', employeeRoutes);
 app.use('/api/agent', agentRoutes);
 
 app.use('/api/insurance/admin', insuranceAdminRoutes);
-
-// ✅ FIX 1: Changed "customer" to "customers" (PLURAL)
 app.use('/api/insurance/customers', insuranceCustomerRoutes);
-
-// ✅ FIX 2: Plural "users" placed specifically ABOVE the general "/api/loan" route
-app.use('/api/loan/users', loanUserRoutes);
-app.use('/api/loan', loanRoutes);
 app.use('/api/insurance/notices', insuranceNoticeRoutes);
+
+// ✅ FIX 1 & 2: Routing Order is VERY Important here!
+// 1. First check the specific /applications routes
+app.use('/api/loan/users', loanRoutesUsers); 
+
+// 2. Then check the general loan user routes (like /:id)
+app.use('/api/loan/users', loanUserRoutes);
+
+// 3. Finally, the base loan routes
+app.use('/api/loan', loanRoutes);
+
 // ── Error Middleware ────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;

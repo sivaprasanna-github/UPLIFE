@@ -232,11 +232,12 @@ export default function AdminCreateLoanUser() {
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             {[
-              { label: "Total Users",    val: users.length,                                      color: "bg-white border-gray-100" },
-              { label: "Active",         val: users.filter(u => u.status === "Active").length,   color: "bg-blue-50 border-blue-100" },
-              { label: "Total Required", val: fmt(users.reduce((s, u) => s + (u.requiredLoanAmount||0), 0)), color: "bg-green-50 border-green-100" },
+              { label: "Total Users",    val: users.length,                                      color: "bg-white border-gray-300" },
+              { label: "Active",         val: users.filter(u => u.status === "Active").length,   color: "bg-blue-50 border-blue-300" },
+              { label: "Inactive",       val: users.filter(u => u.status === "Inactive").length, color: "bg-red-50 border-red-300" },
+              { label: "Total Required", val: fmt(users.reduce((s, u) => s + (u.requiredLoanAmount||0), 0)), color: "bg-green-50 border-green-300" },
             ].map(({ label, val, color }) => (
               <div key={label} className={`rounded-xl border p-4 ${color}`}>
                 <p className="text-xs text-gray-500 font-medium">{label}</p>

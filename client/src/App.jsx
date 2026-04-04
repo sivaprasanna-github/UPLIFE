@@ -17,6 +17,7 @@ import LoanHome from "./pages/loan/LoanHome";
 import CreateEmployee from "./pages/loan/CreateEmployee";
 import AdminLoanClients from "./pages/loan/AdminLoanClients";
 import AdminCreateLoanUser from "./pages/loan/AdminCreateLoanUser";
+import AdminLoanManagement from "./pages/loan/AdminLoanManagement"; // Import for Manage Loans
 
 // INSURANCE
 import InsuranceHome from "./pages/insurance/InsuranceHome";
@@ -32,6 +33,7 @@ import EmployeeAddUser from "./pages/employee/EmployeeAddUser";
 import ClientList from "./pages/employee/ClientList";
 import LoanApplications from "./pages/employee/LoanApplications";
 import EmployeeReports from "./pages/employee/EmployeeReports";
+import EmployeeLoanStatus from "./pages/employee/EmployeeLoanStatus"; // Import for Employee Loan Status
 
 // AGENT
 import AgentHome from "./pages/agent/AgentHome";
@@ -39,6 +41,7 @@ import AgentAddCustomer from "./pages/agent/AgentAddCustomer";
 import MyPolicies from "./pages/agent/MyPolicies";
 import SubmitClaim from "./pages/agent/SubmitClaim";
 import Commissions from "./pages/agent/Commissions";
+
 
 function App() {
   return (
@@ -55,7 +58,7 @@ function App() {
         {/* Dashboard */}
         <Route path="/dashboard" element={<DashboardSelection />} />
 
-        {/* ✅ FIX: ADMIN ROUTE */}
+        {/* ADMIN ROUTE */}
         <Route path="/admin" element={<Navigate to="/dashboard/insurance/admin" replace />} />
 
         {/* Layout Routes */}
@@ -66,6 +69,9 @@ function App() {
           <Route path="/dashboard/loan/create-employee" element={<CreateEmployee />} />
           <Route path="/dashboard/loan/users" element={<AdminCreateLoanUser />} />
           <Route path="/dashboard/loan/clients" element={<AdminLoanClients />} />
+          
+          {/* ✅ FIX: ADDED ADMIN LOAN MANAGEMENT ROUTE HERE */}
+          <Route path="/dashboard/loan/management" element={<AdminLoanManagement />} />
 
           {/* ADMIN INSURANCE */}
           <Route path="/dashboard/insurance" element={<InsuranceHome />} />
@@ -83,6 +89,9 @@ function App() {
           <Route path="/employee/clients" element={<ClientList />} />
           <Route path="/employee/applications" element={<LoanApplications />} />
           <Route path="/employee/reports" element={<EmployeeReports />} />
+          
+          {/* ✅ FIX: ADDED EMPLOYEE LOAN STATUS ROUTE HERE */}
+          <Route path="/employee/loan-status" element={<EmployeeLoanStatus />} />
 
           {/* AGENT */}
           <Route path="/agent/home" element={<AgentHome />} />
@@ -93,7 +102,7 @@ function App() {
 
         </Route>
 
-        {/* ✅ Optional: Catch-all (no more errors) */}
+        {/* Catch-all (404) */}
         <Route path="*" element={<h1>404 - Page Not Found</h1>} />
       </Routes>
     </div>
