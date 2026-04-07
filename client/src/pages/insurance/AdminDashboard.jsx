@@ -1,371 +1,343 @@
-import React, { useEffect, useState } from "react";
-import { 
-  Users, UserCircle, FileText, AlertTriangle, TrendingUp, 
-  ShieldCheck, Download, DollarSign, PieChart, Umbrella 
+import React, { useState, useEffect } from "react";
+import {
+  Users, FileText, AlertTriangle, UserPlus,
+  Eye, Plus, Megaphone, ArrowRight,
+  Clock, ChevronRight, Activity, ShieldCheck, Database
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-const STATUS_COLORS = {
-  "Filed": "bg-blue-100 text-blue-700",
-  "Under Review": "bg-amber-100 text-amber-700",
-  "Approved": "bg-emerald-100 text-emerald-700",
-  "Paid": "bg-purple-100 text-purple-700",
-  "Rejected": "bg-red-100 text-red-700",
-  "Active": "bg-green-100 text-green-700",
-  "Inactive": "bg-gray-100 text-gray-500",
-  "Pending": "bg-amber-100 text-amber-700",
-};
+/* ================= EXACT MATCH STAT CARD ================= */
+function StatCard({ title, value, icon: Icon, theme, percent, progress }) {
+  const isDark = theme === 'dark';
 
-export default function AdminDashboard() {
-  const [stats, setStats]             = useState(null);
-  const [claims, setClaims]           = useState([]);
-  const [agents, setAgents]           = useState([]);
-  const [policies, setPolicies]       = useState([]);
-  const [commissions, setCommissions] = useState([]);
-  
-  const [loading, setLoading]     = useState(true);
-  const [activeTab, setActiveTab] = useState("claims");
-
-  const token = sessionStorage.getItem("token");
-  const headers = { 
-    "Content-Type": "application/json", 
-    Authorization: `Bearer ${token}` 
-  };
-
-  // ── FETCH EVERYTHING FROM BACKEND ──────────────────────────────────────────
-  const fetchDashboardData = async () => {
-    try {
-      // ✅ FIX: Added "/admin" to all the fetch URLs to match your server.js routes
-      const [statsRes, claimsRes, agentsRes, policiesRes, commissionsRes] = await Promise.all([
-        fetch(`${API_URL}/insurance/admin/stats`, { headers }),
-        fetch(`${API_URL}/insurance/admin/all-claims?status=all`, { headers }),
-        fetch(`${API_URL}/insurance/admin/agents`, { headers }),
-        fetch(`${API_URL}/insurance/admin/all-policies?status=all`, { headers }),
-        fetch(`${API_URL}/insurance/admin/all-commissions`, { headers })
-      ]);
-
-      // Using .text() first to catch any remaining HTML errors gracefully
-      const parseJson = async (res) => {
-        const text = await res.text();
-        try { return JSON.parse(text); } 
-        catch { throw new Error(`Server returned HTML instead of JSON: ${text.substring(0, 50)}...`); }
-      };
-
-      const [sData, cData, aData, pData, comData] = await Promise.all([
-        parseJson(statsRes), parseJson(claimsRes), parseJson(agentsRes), parseJson(policiesRes), parseJson(commissionsRes)
-      ]);
-
-      setStats(sData);
-      setClaims(Array.isArray(cData) ? cData : []);
-      setAgents(Array.isArray(aData) ? aData : []);
-      setPolicies(Array.isArray(pData) ? pData : []);
-      setCommissions(Array.isArray(comData) ? comData : []);
-      
-    } catch (error) {
-      console.error("Dashboard Load Error:", error);
-      toast.error("Failed to connect to insurance server. Check console.");
-    } finally {
-      setLoading(false);
+  const styles = {
+    dark: {
+      card: "bg-[#2b2a6f] text-white",
+      circle: "",
+      title: "text-indigo-200",
+      value: "text-white",
+      pillBg: "bg-[#00c97b]",
+      pillText: "text-white",
+      vsText: "text-indigo-200",
+      track: "bg-white/10",
+      fill: "bg-[#00c97b]",
+      iconWrapper: "bg-white/10 text-indigo-100"
+    },
+    green: {
+      card: "bg-white",
+      circle: "bg-[#ebfaeb]",
+      title: "text-gray-400",
+      value: "text-gray-800",
+      pillBg: "bg-[#00c97b]",
+      pillText: "text-white",
+      vsText: "text-gray-400",
+      track: "bg-gray-100",
+      fill: "bg-[#00c97b]",
+      iconWrapper: "bg-white border border-gray-100 text-[#00c97b]"
+    },
+    blue: {
+      card: "bg-white",
+      circle: "bg-[#f0f4ff]",
+      title: "text-gray-400",
+      value: "text-gray-800",
+      pillBg: "bg-[#3b82f6]",
+      pillText: "text-white",
+      vsText: "text-gray-400",
+      track: "bg-gray-100",
+      fill: "bg-[#3b82f6]",
+      iconWrapper: "bg-white border border-gray-100 text-[#3b82f6]"
+    },
+    red: {
+      card: "bg-white",
+      circle: "bg-[#fff0f2]",
+      title: "text-gray-400",
+      value: "text-gray-800",
+      pillBg: "bg-[#ff6b6b]",
+      pillText: "text-white",
+      vsText: "text-gray-400",
+      track: "bg-gray-100",
+      fill: "bg-[#ff6b6b]",
+      iconWrapper: "bg-white border border-gray-100 text-[#ff6b6b]"
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  // ── ACTIONS ────────────────────────────────────────────────────────────────
-  const handleUpdateClaim = async (id, newStatus) => {
-    try {
-      // ✅ FIX: Added "/admin"
-      const res = await fetch(`${API_URL}/insurance/admin/claim/${id}/status`, {
-        method: "PATCH", headers,
-        body: JSON.stringify({ status: newStatus, adminRemarks: "Status updated by administrator" })
-      });
-      if (!res.ok) throw new Error("Update failed");
-      toast.success(`Claim marked as ${newStatus}`);
-      setClaims(prev => prev.map(c => c._id === id ? { ...c, status: newStatus } : c));
-      
-      // ✅ FIX: Added "/admin"
-      fetch(`${API_URL}/insurance/admin/stats`, { headers }).then(r=>r.json()).then(setStats);
-    } catch (err) { toast.error(err.message); }
-  };
-
-  const handlePayCommission = async (id) => {
-    if (!window.confirm("Mark this commission as Paid?")) return;
-    try {
-      // ✅ FIX: Added "/admin"
-      const res = await fetch(`${API_URL}/insurance/admin/commission/${id}/pay`, { method: "PATCH", headers });
-      if (!res.ok) throw new Error("Payment failed");
-      toast.success("Commission Paid");
-      setCommissions(prev => prev.map(c => c._id === id ? { ...c, status: "Paid" } : c));
-    } catch (err) { toast.error(err.message); }
-  };
-
-  // ── CSV EXPORT (Dynamic based on Tab) ──────────────────────────────────────
-  const downloadCSV = () => {
-    let rows = [];
-    let filename = "";
-
-    if (activeTab === "claims") {
-      if (claims.length === 0) return toast.error("No claims to export");
-      rows = [["Policy Number", "Client Name", "Claim Amount", "Agent", "Status", "Date Filed"],
-        ...claims.map(c => [c.policyNumber, c.clientName, c.claimAmount, c.agent?.name || "System", c.status, new Date(c.createdAt).toLocaleDateString()])];
-      filename = "Claims_Report";
-    } 
-    else if (activeTab === "policies") {
-      if (policies.length === 0) return toast.error("No policies to export");
-      rows = [["Policy Number", "Client Name", "Type", "Premium", "Status", "Date Created"],
-        ...policies.map(p => [p.policyNumber, p.clientName, p.insuranceType, p.premiumAmount, p.status, new Date(p.createdAt).toLocaleDateString()])];
-      filename = "Policies_Report";
-    }
-    else if (activeTab === "agents") {
-      if (agents.length === 0) return toast.error("No agents to export");
-      rows = [["Agent Name", "Email", "Total Policies", "Total Claims", "Registration Date"],
-        ...agents.map(a => [a.name, a.email, a.policyCount || 0, a.claimCount || 0, new Date(a.createdAt).toLocaleDateString()])];
-      filename = "Agents_Report";
-    }
-    else if (activeTab === "commissions") {
-      if (commissions.length === 0) return toast.error("No commissions to export");
-      rows = [["Agent Name", "Policy Number", "Client", "Commission Amt", "Status", "Date"],
-        ...commissions.map(c => [c.agent?.name || "Unknown", c.policyNumber, c.clientName, c.commissionAmount, c.status, new Date(c.createdAt).toLocaleDateString()])];
-      filename = "Commissions_Report";
-    }
-
-    const csvContent = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
-
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-96 gap-4">
-      <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-      <p className="text-gray-500 font-medium">Fetching entire database...</p>
-    </div>
-  );
+  const currentTheme = styles[theme];
 
   return (
-    <div className="space-y-6 p-4 max-w-7xl mx-auto">
-      {/* ── HEADER ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight">Insurance Headquarters</h2>
-          <p className="text-gray-500 text-sm mt-1">Real-time oversight of your entire insurance platform</p>
-        </div>
-        <button onClick={downloadCSV}
-          className="flex items-center justify-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-95">
-          <Download className="w-4 h-4" /> Export {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} CSV
-        </button>
+    <div className={`relative p-6 rounded-[20px] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] overflow-hidden ${currentTheme.card}`}>
+      
+      {/* Massive soft circle bleeding from the left (for light cards) */}
+      {!isDark && (
+        <div className={`absolute -left-16 top-1/2 -translate-y-1/2 w-48 h-48 rounded-full ${currentTheme.circle} pointer-events-none`}></div>
+      )}
+
+      {/* Top Right Icon */}
+      <div className={`absolute top-6 right-6 w-11 h-11 rounded-xl flex items-center justify-center ${currentTheme.iconWrapper}`}>
+        <Icon className="w-5 h-5" strokeWidth={2.5} />
       </div>
 
-      {/* ── STATS GRID (Pulled directly from API) ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Agents" value={stats?.totalAgents} icon={UserCircle} color="text-blue-600" bg="bg-blue-50" />
-        <StatCard title="Total Policies" value={stats?.totalPolicies} icon={Umbrella} color="text-purple-600" bg="bg-purple-50" />
-        <StatCard title="Pending Claims" value={stats?.pendingClaims} icon={AlertTriangle} color="text-amber-600" bg="bg-amber-50" />
-        
-        <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-5 text-white shadow-md relative overflow-hidden">
-          <DollarSign className="absolute -right-4 -bottom-4 w-24 h-24 text-white/10" />
-          <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest">Total Active Premium</p>
-          <p className="text-3xl font-black mt-2">₹{stats?.totalPremium?.toLocaleString("en-IN") || 0}</p>
-          <div className="flex items-center gap-1 mt-2 text-emerald-200 text-xs">
-            <TrendingUp className="w-3 h-3" />
-            <span>Across {stats?.activePolicies || 0} active policies</span>
+      {/* Content */}
+      <div className="relative z-10 flex flex-col h-full justify-between">
+        <div>
+          <h3 className={`text-[10px] font-black uppercase tracking-wider mb-1 ${currentTheme.title}`}>{title}</h3>
+          <p className={`text-4xl font-black tracking-tight ${currentTheme.value}`}>{value}</p>
+        </div>
+
+        <div className="mt-8">
+          <div className="flex items-center text-[10px] font-bold mb-3">
+            <span className={`px-2 py-0.5 rounded ${currentTheme.pillBg} ${currentTheme.pillText}`}>
+              {percent}
+            </span>
+            <span className={`ml-2 font-medium ${currentTheme.vsText}`}>vs last month</span>
+          </div>
+
+          {/* Progress Bar */}
+          <div className={`w-full h-1.5 rounded-full overflow-hidden ${currentTheme.track}`}>
+            <div className={`h-full rounded-full ${currentTheme.fill}`} style={{ width: progress }}></div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* ── MAIN DATA TABS ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
-        <div className="flex border-b overflow-x-auto no-scrollbar bg-gray-50/50">
-          <TabButton active={activeTab === "claims"} onClick={() => setActiveTab("claims")} label="Claims" icon={FileText} count={claims.length} />
-          <TabButton active={activeTab === "policies"} onClick={() => setActiveTab("policies")} label="Policies" icon={ShieldCheck} count={policies.length} />
-          <TabButton active={activeTab === "commissions"} onClick={() => setActiveTab("commissions")} label="Commissions" icon={DollarSign} count={commissions.length} />
-          <TabButton active={activeTab === "agents"} onClick={() => setActiveTab("agents")} label="Agents" icon={Users} count={agents.length} />
+/* ================= QUICK ACTIONS ================= */
+function QuickActions() {
+  const navigate = useNavigate();
+  const actions = [
+    { label: "Add Agent", desc: "Register new broker", icon: UserPlus, color: "text-indigo-500", bg: "bg-indigo-50", route: "/dashboard/insurance/create-agent" },
+    { label: "Add Customer", desc: "Create client profile", icon: Users, color: "text-emerald-500", bg: "bg-emerald-50", route: "/dashboard/insurance/customers/manage" },
+    { label: "All Policies", desc: "Manage issued policies", icon: ShieldCheck, color: "text-amber-500", bg: "bg-amber-50", route: "/dashboard/insurance/customers" },
+    { label: "Review Claims", desc: "Process open claims", icon: AlertTriangle, color: "text-purple-500", bg: "bg-purple-50", route: "/dashboard/insurance/claims" },
+  ];
+
+  return (
+    <div className="bg-white p-6 rounded-[20px] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] h-full flex flex-col">
+      <div className="mb-6">
+        <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Quick Actions</p>
+        <h4 className="font-bold text-xl text-gray-800">Operations</h4>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+        {actions.map((action, idx) => (
+          <button key={idx} onClick={() => navigate(action.route)}
+            className="flex items-center p-4 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all text-left">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${action.bg} ${action.color}`}>
+              <action.icon className="w-5 h-5" strokeWidth={2.5} />
+            </div>
+            <div>
+              <span className="block font-bold text-gray-800 text-sm">{action.label}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ================= NOTICES ================= */
+function NoticesList({ notices }) {
+  const navigate = useNavigate();
+  return (
+    <div className="bg-white p-6 rounded-[20px] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] h-full flex flex-col">
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-wider text-gray-400">Communications</p>
+          <h4 className="font-bold text-xl text-gray-800">System Notices</h4>
         </div>
+        <button onClick={() => navigate('/dashboard/insurance/notices')} className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+          View All <ArrowRight className="w-3 h-3" />
+        </button>
+      </div>
+      
+      <div className="space-y-4 flex-1 overflow-y-auto">
+        {notices.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-gray-300">
+            <Megaphone className="w-8 h-8 mb-2 opacity-50" />
+            <p className="text-sm font-medium">No recent notices published.</p>
+          </div>
+        ) : (
+          notices.map((n) => (
+            <div key={n._id} className="flex items-start gap-4">
+              <div className="w-2 h-2 mt-1.5 rounded-full bg-blue-500 shrink-0"></div>
+              <div className="flex-1 border-b border-gray-50 pb-4">
+                <div className="flex justify-between items-start gap-4">
+                  <p className="font-bold text-gray-800 text-sm">{n.title}</p>
+                  <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                    n.priority === "High" || n.priority === "Urgent" ? "bg-rose-50 text-rose-600" : "bg-gray-100 text-gray-500"
+                  }`}>
+                    {n.priority}
+                  </span>
+                </div>
+                <p className="text-xs font-medium text-gray-400 mt-1">
+                  {new Date(n.createdAt).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
 
-        <div className="p-0 overflow-x-auto">
-          {/* TAB: CLAIMS */}
-          {activeTab === "claims" && (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-bold tracking-widest border-b border-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-left">Claim Info</th>
-                  <th className="px-6 py-4 text-left">Policy & Agent</th>
-                  <th className="px-6 py-4 text-left">Amount</th>
-                  <th className="px-6 py-4 text-left">Status</th>
-                  <th className="px-6 py-4 text-left">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {claims.length === 0 ? <tr><td colSpan={5} className="text-center py-10 text-gray-400">No claims found</td></tr> : 
-                  claims.map(c => (
-                  <tr key={c._id} className="hover:bg-gray-50/50 transition">
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-gray-800">{c.clientName}</div>
-                      <div className="text-[11px] text-gray-400 line-clamp-1 max-w-[200px]">{c.description}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs font-mono font-bold text-indigo-600">{c.policyNumber}</div>
-                      <div className="text-[11px] text-gray-500">Agent: {c.agent?.name || "System"}</div>
-                    </td>
-                    <td className="px-6 py-4 font-black text-gray-900">₹{c.claimAmount?.toLocaleString()}</td>
-                    <td className="px-6 py-4">
-                      <select value={c.status} onChange={(e) => handleUpdateClaim(c._id, e.target.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border-0 cursor-pointer shadow-sm ${STATUS_COLORS[c.status] || "bg-gray-100 text-gray-600"}`}>
-                        {["Filed", "Under Review", "Approved", "Paid", "Rejected"].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-medium text-gray-500">{new Date(c.createdAt).toLocaleDateString("en-IN")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+/* ================= CUSTOMERS TABLE ================= */
+function CustomersTable({ customers }) {
+  const navigate = useNavigate();
 
-          {/* TAB: POLICIES */}
-          {activeTab === "policies" && (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-bold tracking-widest border-b border-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-left">Policy No</th>
-                  <th className="px-6 py-4 text-left">Client & Agent</th>
-                  <th className="px-6 py-4 text-left">Type</th>
-                  <th className="px-6 py-4 text-left">Premium / Sum</th>
-                  <th className="px-6 py-4 text-left">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {policies.length === 0 ? <tr><td colSpan={5} className="text-center py-10 text-gray-400">No policies found</td></tr> : 
-                  policies.map(p => (
-                  <tr key={p._id} className="hover:bg-gray-50/50 transition">
-                    <td className="px-6 py-4 font-mono font-bold text-indigo-600 text-xs">{p.policyNumber}</td>
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-gray-800">{p.clientName}</div>
-                      <div className="text-[11px] text-gray-500">Agent: {p.agent?.name || "System"}</div>
-                    </td>
-                    <td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold">{p.insuranceType}</span></td>
-                    <td className="px-6 py-4">
-                      <div className="font-black text-gray-800">₹{p.premiumAmount?.toLocaleString()}</div>
-                      <div className="text-[11px] text-gray-400">Cover: ₹{p.sumAssured?.toLocaleString() || "0"}</div>
-                    </td>
-                    <td className="px-6 py-4"><span className={`px-2 py-1 rounded text-xs font-bold ${STATUS_COLORS[p.status] || "bg-gray-100"}`}>{p.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+  return (
+    <div className="bg-white rounded-[20px] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] overflow-hidden mt-6">
+      <div className="p-6 flex justify-between items-center bg-white border-b border-gray-50">
+        <h4 className="font-bold text-xl text-gray-800">Recent Clients</h4>
+        <button onClick={() => navigate('/dashboard/insurance/customers/manage')} className="text-xs font-bold text-gray-400 hover:text-gray-800 transition-colors">
+          Showing {customers.length} of {customers.length}
+        </button>
+      </div>
 
-          {/* TAB: COMMISSIONS */}
-          {activeTab === "commissions" && (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-bold tracking-widest border-b border-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-left">Agent</th>
-                  <th className="px-6 py-4 text-left">Policy & Client</th>
-                  <th className="px-6 py-4 text-left">Commission Rate</th>
-                  <th className="px-6 py-4 text-left">Payout Amount</th>
-                  <th className="px-6 py-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {commissions.length === 0 ? <tr><td colSpan={5} className="text-center py-10 text-gray-400">No commissions recorded</td></tr> : 
-                  commissions.map(c => (
-                  <tr key={c._id} className="hover:bg-gray-50/50 transition">
-                    <td className="px-6 py-4 font-bold text-gray-800">{c.agent?.name || "Unknown"}</td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs font-mono font-bold text-indigo-600">{c.policyNumber}</div>
-                      <div className="text-[11px] text-gray-500">{c.clientName} ({c.insuranceType})</div>
-                    </td>
-                    <td className="px-6 py-4 font-semibold text-gray-600">{c.commissionRate}%</td>
-                    <td className="px-6 py-4 font-black text-emerald-600 text-base">₹{c.commissionAmount?.toLocaleString()}</td>
-                    <td className="px-6 py-4 text-right">
-                      {c.status === "Pending" ? (
-                        <button onClick={() => handlePayCommission(c._id)}
-                          className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                          Mark Paid
-                        </button>
-                      ) : (
-                        <span className="bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg text-xs font-bold">Paid</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          {/* TAB: AGENTS */}
-          {activeTab === "agents" && (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-400 text-[10px] uppercase font-bold tracking-widest border-b border-gray-100">
-                <tr>
-                  <th className="px-6 py-4 text-left">Agent Identity</th>
-                  <th className="px-6 py-4 text-left">Contact Info</th>
-                  <th className="px-6 py-4 text-center">Total Policies</th>
-                  <th className="px-6 py-4 text-center">Total Claims</th>
-                  <th className="px-6 py-4 text-right">Registration Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {agents.length === 0 ? <tr><td colSpan={5} className="text-center py-10 text-gray-400">No agents found</td></tr> : 
-                  agents.map(a => (
-                  <tr key={a._id} className="hover:bg-gray-50/50 transition">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-sm">
-                          {a.name?.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="font-bold text-gray-800">{a.name}</div>
-                          <div className="text-[10px] text-emerald-600 font-bold uppercase tracking-tighter">Certified Agent</div>
-                        </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead>
+            <tr>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">Customer Info</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">Interest / Policy</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider">Date Added</th>
+              <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-wider text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {customers.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-12 text-center text-gray-400">
+                  <Database className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium text-sm">No clients found.</p>
+                </td>
+              </tr>
+            ) : (
+              customers.map((c) => (
+                <tr key={c._id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                        {c.fullName?.charAt(0).toUpperCase()}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 font-medium">{a.email}</td>
-                    <td className="px-6 py-4 text-center"><span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-black text-xs">{a.policyCount || 0}</span></td>
-                    <td className="px-6 py-4 text-center"><span className="bg-amber-50 text-amber-700 px-3 py-1 rounded-full font-black text-xs">{a.claimCount || 0}</span></td>
-                    <td className="px-6 py-4 text-right text-xs font-bold text-gray-400">{new Date(a.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                      <div>
+                        <p className="font-bold text-gray-800">{c.fullName}</p>
+                        <p className="text-xs text-gray-400">{c.email}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-gray-700 font-bold text-sm">
+                      {c.preferredInsuranceType || "None"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      c.status === 'Active' ? 'bg-[#00c97b] text-white' : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {c.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-gray-500 font-medium text-sm">
+                    {new Date(c.createdAt).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button onClick={() => navigate('/dashboard/insurance/customers/manage')} className="p-2 rounded-lg border border-gray-100 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ================= MAIN DASHBOARD ================= */
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({ totalAgents: 0, activePolicies: 0, pendingClaims: 0 });
+  const [activeCustomers, setActiveCustomers] = useState(0);
+  const [recentCustomers, setRecentCustomers] = useState([]);
+  const [recentNotices, setRecentNotices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const headers = { Authorization: `Bearer ${sessionStorage.getItem('token')}` };
+        const [statsRes, custStatsRes, custRes, noticeRes] = await Promise.all([
+          fetch(`${API_URL}/insurance/stats`, { headers }),
+          fetch(`${API_URL}/insurance/customers/stats/summary`, { headers }),
+          fetch(`${API_URL}/insurance/customers`, { headers }),
+          fetch(`${API_URL}/insurance/notices`, { headers })
+        ]);
+        setStats(await statsRes.json());
+        setActiveCustomers((await custStatsRes.json()).active || 0);
+        setRecentCustomers((await custRes.json()).slice(0, 5));
+        setRecentNotices((await noticeRes.json()).slice(0, 4));
+      } catch (e) { console.error(e); } finally { setLoading(false); }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center text-gray-400 font-bold">
+      <Activity className="w-5 h-5 mr-2 animate-spin text-blue-600" /> Loading Dashboard...
+    </div>
+  );
+
+  // Current Date for the pill
+  const dateString = new Date().toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+
+  return (
+    <div className="space-y-6 max-w-[1600px] mx-auto bg-[#f4f7fe] min-h-screen p-4 sm:p-6 lg:p-8">
+      
+      {/* Header matching the screenshot */}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+        <div>
+          <h2 className="text-[28px] font-bold text-[#1b2559] tracking-tight">Admin Dashboard</h2>
+          <p className="text-[#a3aed1] text-sm mt-1 font-medium">Welcome back Admin, Have a nice day..!</p>
+        </div>
+        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] text-xs font-bold text-gray-600">
+          {dateString} <div className="w-2.5 h-2.5 rounded-full bg-purple-500"></div>
         </div>
       </div>
-    </div>
-  );
-}
 
-// ── SUBCOMPONENTS ──
-function StatCard({ title, value, icon: Icon, color, bg }) {
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`${bg} p-2.5 rounded-xl`}><Icon className={`w-5 h-5 ${color}`} /></div>
-        <PieChart className="w-4 h-4 text-gray-200" />
+      {/* 4 Cards Grid exactly like screenshot */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          title="Total Agents" value={stats.totalAgents || 0} icon={Users} 
+          theme="dark" percent="+12%" progress="80%" 
+        />
+        <StatCard 
+          title="Active Customers" value={activeCustomers} icon={UserPlus} 
+          theme="green" percent="+5%" progress="60%" 
+        />
+        <StatCard 
+          title="Active Policies" value={stats.activePolicies || 0} icon={ShieldCheck} 
+          theme="blue" percent="+8%" progress="45%" 
+        />
+        <StatCard 
+          title="Pending Claims" value={stats.pendingClaims || 0} icon={AlertTriangle} 
+          theme="red" percent="+3%" progress="25%" 
+        />
       </div>
-      <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">{title}</p>
-      <p className="text-3xl font-black text-gray-800 mt-1">{value?.toLocaleString() || 0}</p>
-    </div>
-  );
-}
 
-function TabButton({ active, onClick, label, icon: Icon, count }) {
-  return (
-    <button onClick={onClick}
-      className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all relative shrink-0 ${
-        active ? "text-emerald-600 bg-white" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/50"
-      }`}>
-      <Icon className="w-4 h-4" /> {label}
-      <span className={`text-[10px] px-2 py-0.5 rounded-md ${active ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-600"}`}>
-        {count}
-      </span>
-      {active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600" />}
-    </button>
+      {/* Middle Grid */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <QuickActions />
+        <NoticesList notices={recentNotices} />
+      </div>
+
+      {/* Bottom Table */}
+      <CustomersTable customers={recentCustomers} />
+
+    </div>
   );
 }

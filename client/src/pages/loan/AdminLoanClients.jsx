@@ -1,275 +1,231 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { Search, FileText, CheckCircle, XCircle, Clock, Eye, X, Filter, Download } from "lucide-react";
 import toast from "react-hot-toast";
-import {
-  Users, Search, CheckCircle, XCircle, Clock,
-  TrendingUp, Eye, RefreshCw
-} from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const LOAN_TYPES = [
-  "all",
-  "Personal Loan", "Business Loan",
-  "Home Loan - Construction Flat", "Home Loan - Independent House",
-  "Home Loan - Plot Purchase", "Home Loan - Plot + Construction",
-  "Mortgage Loan - Residential", "Mortgage Loan - Commercial", "Mortgage Loan - Open Plot",
-  "Education Loan", "Used Car Loan", "New Car Loan", "Car Refinance"
-];
-
-const STATUS_CONFIG = {
-  pending:  { label: "Pending",  color: "bg-yellow-100 text-yellow-700 border-yellow-200", icon: <Clock className="w-3.5 h-3.5" /> },
-  approved: { label: "Approved", color: "bg-green-100 text-green-700 border-green-200",  icon: <CheckCircle className="w-3.5 h-3.5" /> },
-  rejected: { label: "Rejected", color: "bg-red-100 text-red-700 border-red-200",     icon: <XCircle className="w-3.5 h-3.5" /> }
+const STATUS_UI = {
+  pending:  { bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200", icon: Clock },
+  approved: { bg: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-200", icon: CheckCircle },
+  rejected: { bg: "bg-rose-100", text: "text-rose-700", border: "border-rose-200", icon: XCircle },
 };
 
-const fmt = (n) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
-
 export default function AdminLoanClients() {
-  const [clients, setClients]   = useState([]);
-  const [stats, setStats]       = useState({});
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState("");
-  const [status, setStatus]     = useState("all");
-  const [loanType, setLoanType] = useState("all");
-  const [selected, setSelected] = useState(null); 
-  const [updating, setUpdating] = useState(null);
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch]   = useState("");
+  const [filter, setFilter]   = useState("all");
+  const [selected, setSelected] = useState(null);
 
-  const token   = sessionStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
-  const fetchAll = async () => {
+  const fetchClients = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (status   !== "all") params.set("status",   status);
-      if (loanType !== "all") params.set("loanType", loanType);
-      if (search)             params.set("search",   search);
-
-      const [clientsRes, statsRes] = await Promise.all([
-        fetch(`${API_URL}/admin/loan/clients?${params}`, { headers }),
-        fetch(`${API_URL}/admin/loan/stats`, { headers })
-      ]);
-      const [clientsData, statsData] = await Promise.all([clientsRes.json(), statsRes.json()]);
-      setClients(Array.isArray(clientsData) ? clientsData : []);
-      setStats(statsData);
-    } catch { toast.error("Failed to load clients"); }
-    finally { setLoading(false); }
+      if (filter !== "all") params.set("status", filter);
+      if (search) params.set("search", search);
+      
+      const res = await fetch(`${API_URL}/admin/loan/clients?${params}`, { headers });
+      const data = await res.json();
+      setClients(Array.isArray(data) ? data : []);
+    } catch {
+      toast.error("Failed to load loan applications");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchAll(); }, [status, loanType]);
+  useEffect(() => { fetchClients(); }, [filter]);
 
-  const handleSearch = (e) => { e.preventDefault(); fetchAll(); };
-
-  const updateStatus = async (id, newStatus) => {
-    setUpdating(id);
+  const updateStatus = async (id, status) => {
     try {
-      const res  = await fetch(`${API_URL}/admin/loan/client/${id}/status`, {
-        method: "PATCH", headers, body: JSON.stringify({ status: newStatus })
+      await fetch(`${API_URL}/admin/loan/client/${id}/status`, {
+        method: "PATCH", headers, body: JSON.stringify({ status })
       });
-      if (!res.ok) throw new Error("Failed");
-      toast.success(`Status updated to ${newStatus}`);
-      fetchAll();
-      if (selected?._id === id) setSelected(prev => ({ ...prev, status: newStatus }));
-    } catch { toast.error("Update failed"); }
-    finally { setUpdating(null); }
+      toast.success(`Application marked as ${status}`);
+      setClients(prev => prev.map(c => c._id === id ? { ...c, status } : c));
+      setSelected(null);
+    } catch {
+      toast.error("Failed to update status");
+    }
   };
-
-  const StatCard = ({ label, value, sub, color }) => (
-    <div className={`rounded-xl p-5 border ${color} shadow-sm transition-transform hover:-translate-y-1`}>
-      <p className="text-sm font-semibold text-gray-500">{label}</p>
-      <p className="text-2xl font-bold text-gray-800 mt-1">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-    </div>
-  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 bg-slate-50 min-h-screen p-4 sm:p-6 lg:p-8 rounded-3xl">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Loan Applications</h2>
-          <p className="text-sm text-gray-500 mt-1">Manage and track all employee-submitted loan applications</p>
+          <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            <FileText className="w-8 h-8 text-blue-600" /> Loan Applications
+          </h2>
+          <p className="text-sm text-slate-500 mt-1 font-medium">Review, approve, and manage customer loan requests.</p>
         </div>
-        <button onClick={fetchAll} className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition shadow-sm">
-          <RefreshCw className="w-4 h-4" /> Refresh
+        <button className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 shadow-sm transition-all active:scale-95">
+          <Download className="w-4 h-4" /> Export CSV
         </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard label="Total Applications" value={stats.total ?? 0} color="border-gray-200 bg-white" />
-        <StatCard label="Under Processing"   value={stats.underProcessing ?? 0}  color="border-yellow-200 bg-yellow-50" />
-        <StatCard label="Approved"  value={stats.approved ?? 0} color="border-green-200 bg-green-50" />
-        <StatCard label="Rejected"  value={stats.rejected ?? 0} color="border-red-200 bg-red-50" />
-        <StatCard label="Approved Amount" value={fmt(stats.approvedAmount ?? 0)} color="border-blue-200 bg-blue-50" />
-      </div>
+      {/* Advanced Filters Bar */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
+        
+        {/* Tabs for Filtering */}
+        <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 w-full md:w-auto overflow-x-auto">
+          {["all", "pending", "approved", "rejected"].map(s => (
+            <button key={s} onClick={() => setFilter(s)}
+              className={`px-5 py-2 rounded-lg text-xs font-bold capitalize transition-all whitespace-nowrap ${
+                filter === s ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}>
+              {s === "all" ? "All Requests" : s}
+            </button>
+          ))}
+        </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-        <form onSubmit={handleSearch} className="flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-48">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search name, email, phone…"
-              className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            />
+        {/* Search */}
+        <form onSubmit={e => { e.preventDefault(); fetchClients(); }} className="flex gap-2 w-full md:w-auto flex-1 md:max-w-md">
+          <div className="relative w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search Client Name, Phone, or Email..."
+              className="w-full pl-11 pr-4 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 bg-slate-50 shadow-inner transition-all" />
           </div>
-          <select value={status} onChange={e => setStatus(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer transition">
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
-          <select value={loanType} onChange={e => setLoanType(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-56 bg-white cursor-pointer transition">
-            {LOAN_TYPES.map(t => <option key={t} value={t}>{t === "all" ? "All Loan Types" : t}</option>)}
-          </select>
-          <button type="submit"
-            className="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 shadow-sm transition">
-            Search
+          <button type="submit" className="px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-bold shadow-sm">
+            <Filter className="w-4 h-4" />
           </button>
         </form>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-600" />
-            <h3 className="font-semibold text-gray-800">All Loan Clients ({clients.length})</h3>
-          </div>
+      {/* Data Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr>
+                {["Date", "Applicant", "Loan Type", "Amount Required", "Assigned Employee", "Status", "Action"].map((h, i) => (
+                  <th key={i} className={`px-6 py-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest ${i===6 ? 'text-right' : ''}`}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {loading ? (
+                <tr><td colSpan={7} className="text-center py-16 text-slate-400 font-medium">Fetching loan records...</td></tr>
+              ) : clients.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-16 text-slate-400 font-medium">No applications match your criteria.</td></tr>
+              ) : clients.map(c => {
+                const ui = STATUS_UI[c.status] || STATUS_UI.pending;
+                const Icon = ui.icon;
+                return (
+                  <tr key={c._id} className="hover:bg-blue-50/30 transition-colors">
+                    <td className="px-6 py-4 text-slate-500 font-semibold text-xs whitespace-nowrap">
+                      {new Date(c.createdAt).toLocaleDateString("en-IN")}
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-slate-800">{c.fullName}</p>
+                      <p className="text-xs font-medium text-slate-400 mt-0.5">{c.phone}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1 rounded-md text-xs font-bold">
+                        {c.loanType}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-black text-blue-700 text-base">
+                      ₹{c.loanAmount?.toLocaleString("en-IN")}
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-600">
+                      {c.employee?.name || "Unassigned"}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`flex items-center gap-1.5 w-fit px-3 py-1.5 rounded-full text-xs font-bold border shadow-sm ${ui.bg} ${ui.text} ${ui.border}`}>
+                        <Icon className="w-3.5 h-3.5" /> <span className="capitalize">{c.status}</span>
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button onClick={() => setSelected(c)}
+                        className="px-4 py-2 bg-white border border-slate-200 text-blue-600 font-bold text-xs rounded-xl hover:bg-blue-50 hover:border-blue-200 transition shadow-sm">
+                        Review File
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-16 text-gray-400 font-medium">Loading applications...</div>
-        ) : clients.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="font-medium">No clients found matching your filters</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {["S.No", "Date", "Client Name", "Contact Info", "Loan Type", "Amount", "Lead", "Employee", "Status", "Actions"].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {clients.map((c, index) => {
-                  const s = STATUS_CONFIG[c.status] || STATUS_CONFIG.pending;
-                  return (
-                    <tr key={c._id} className="hover:bg-blue-50/30 transition duration-150">
-                      <td className="px-5 py-4 text-gray-500 font-medium">{index + 1}</td>
-                      <td className="px-5 py-4 whitespace-nowrap text-gray-600 font-medium">
-                        {new Date(c.createdAt).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="font-bold text-gray-800">{c.fullName}</p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="text-gray-700 font-medium">{c.phone}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{c.email}</p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="text-xs border border-blue-200 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md font-semibold whitespace-nowrap">
-                          {c.loanType}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 font-bold text-gray-900">{fmt(c.loanAmount)}</td>
-                      <td className="px-5 py-4 text-gray-600 text-xs font-medium">{c.leadName || "—"}</td>
-                      <td className="px-5 py-4">
-                        <p className="font-semibold text-gray-700">{c.employee?.name || "—"}</p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${s.color}`}>
-                          {s.icon} {s.label}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setSelected(c)}
-                            className="p-1.5 rounded-md border border-gray-200 hover:bg-gray-100 hover:text-blue-600 text-gray-600 transition" title="View Details">
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          {c.status !== "approved" && (
-                            <button onClick={() => updateStatus(c._id, "approved")}
-                              disabled={updating === c._id}
-                              className="p-1.5 rounded-md border border-green-200 bg-green-50 hover:bg-green-100 text-green-600 transition disabled:opacity-50" title="Approve">
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                          )}
-                          {c.status !== "rejected" && (
-                            <button onClick={() => updateStatus(c._id, "rejected")}
-                              disabled={updating === c._id}
-                              className="p-1.5 rounded-md border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 transition disabled:opacity-50" title="Reject">
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        {!loading && clients.length > 0 && (
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 text-sm flex justify-between items-center font-bold text-slate-500">
+            <span>Showing {clients.length} applications</span>
           </div>
         )}
       </div>
 
-      {/* Detail Modal */}
+      {/* Review Modal (Glassmorphism & Advanced UI) */}
       {selected && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50">
-              <h3 className="text-lg font-bold text-gray-800">Application Details</h3>
-              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-red-500 transition p-1 rounded-md hover:bg-red-50">✕</button>
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50">
+              <div>
+                <h3 className="font-extrabold text-2xl text-slate-900 tracking-tight">Application Review</h3>
+                <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">ID: {selected._id.slice(-8)}</p>
+              </div>
+              <button onClick={() => setSelected(null)} className="w-8 h-8 flex items-center justify-center bg-slate-200 hover:bg-rose-100 hover:text-rose-600 rounded-full transition font-bold">✕</button>
             </div>
-            <div className="p-6 space-y-5">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            
+            {/* Modal Body */}
+            <div className="p-6 space-y-6">
+              
+              {/* Data Grid */}
+              <div className="grid grid-cols-2 gap-4">
                 {[
-                  ["Full Name",    selected.fullName],
-                  ["Email",        selected.email],
-                  ["Phone",        selected.phone],
-                  ["Loan Type",    selected.loanType],
-                  ["Loan Amount",  fmt(selected.loanAmount)],
-                  ["Lead Source",  selected.leadName || "—"],
-                  ["Assigned To",  selected.employee?.name || "—"],
-                  ["Applied On",   new Date(selected.createdAt).toLocaleDateString("en-IN", { day: '2-digit', month: 'long', year: 'numeric' })],
-                ].map(([k, v]) => (
-                  <div key={k} className="bg-gray-50 border border-gray-100 rounded-xl p-3.5">
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wide mb-1">{k}</p>
-                    <p className="font-semibold text-gray-800">{v}</p>
+                  { label: "Applicant Name", value: selected.fullName },
+                  { label: "Contact Email", value: selected.email },
+                  { label: "Phone Number", value: selected.phone },
+                  { label: "Loan Category", value: selected.loanType },
+                  { label: "Requested Amount", value: <span className="text-blue-600 font-black text-lg">₹{selected.loanAmount?.toLocaleString("en-IN")}</span> },
+                  { label: "Processing Employee", value: selected.employee?.name || "N/A" },
+                ].map((item, idx) => (
+                  <div key={idx} className="bg-slate-50 border border-slate-100 rounded-xl p-4">
+                    <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
+                    <div className="font-bold text-slate-800 text-sm">{item.value}</div>
                   </div>
                 ))}
               </div>
+
+              {/* Remarks Box */}
               {selected.remarks && (
-                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 text-sm">
-                  <p className="text-xs text-blue-500 font-bold uppercase tracking-wide mb-1">Remarks</p>
-                  <p className="text-gray-700">{selected.remarks}</p>
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                  <p className="text-[10px] font-extrabold text-amber-600/80 uppercase tracking-widest mb-1">Employee Remarks</p>
+                  <p className="text-sm font-medium text-slate-700 leading-relaxed">{selected.remarks}</p>
                 </div>
               )}
-              <div className="flex gap-3 pt-3 border-t border-gray-100">
-                <button onClick={() => { updateStatus(selected._id, "approved"); setSelected(null); }}
-                  disabled={selected.status === "approved"}
-                  className="flex-1 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow-sm disabled:opacity-40">
-                  Approve Application
-                </button>
-                <button onClick={() => { updateStatus(selected._id, "pending"); setSelected(null); }}
-                  disabled={selected.status === "pending"}
-                  className="flex-1 py-2.5 bg-yellow-500 text-white font-bold rounded-lg hover:bg-yellow-600 transition shadow-sm disabled:opacity-40">
-                  Set Pending
-                </button>
-                <button onClick={() => { updateStatus(selected._id, "rejected"); setSelected(null); }}
-                  disabled={selected.status === "rejected"}
-                  className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition shadow-sm disabled:opacity-40">
-                  Reject Application
-                </button>
+
+              {/* Action Buttons */}
+              <div className="pt-6 border-t border-slate-100 space-y-3">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 text-center">Final Decision</p>
+                
+                {selected.status === "pending" ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => updateStatus(selected._id, "approved")}
+                      className="py-3.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition shadow-lg shadow-emerald-500/20 active:scale-95 flex justify-center items-center gap-2">
+                      <CheckCircle className="w-5 h-5" /> Approve Loan
+                    </button>
+                    <button onClick={() => updateStatus(selected._id, "rejected")}
+                      className="py-3.5 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition shadow-lg shadow-rose-500/20 active:scale-95 flex justify-center items-center gap-2">
+                      <XCircle className="w-5 h-5" /> Reject Application
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <p className="text-sm font-bold text-slate-600">
+                      This application has already been <span className={`uppercase tracking-widest px-2 py-0.5 rounded text-white ${selected.status === 'approved' ? 'bg-emerald-500' : 'bg-rose-500'}`}>{selected.status}</span>.
+                    </p>
+                    <button onClick={() => updateStatus(selected._id, "pending")} className="mt-3 text-xs font-bold text-blue-600 hover:underline">
+                      Revert to Pending Status
+                    </button>
+                  </div>
+                )}
               </div>
+
             </div>
           </div>
         </div>

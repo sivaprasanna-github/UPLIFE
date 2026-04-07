@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 // Layout
 import Layout from "./components/Layout";
 
-// Shared Pages
+// Shared Pages 
 import LoginPage from "./pages/LoginPage";
 import DashboardSelection from "./pages/DashboardSelection";
 
@@ -26,6 +26,9 @@ import AdminInsuranceCustomers from "./pages/insurance/AdminInsuranceCustomers";
 import AdminCreateInsuranceCustomer from "./pages/insurance/AdminCreateInsuranceCustomer";
 import Claims from "./pages/insurance/Claims";
 import Notice from "./pages/insurance/Noticelist";
+// ✅ NEW IMPORTS FOR REPORTS & COMMISSIONS
+import InsuranceReports from "./pages/insurance/InsuranceReports"; 
+import AdminCommissions from "./pages/insurance/AdminCommissions"; 
 
 // EMPLOYEE
 import EmployeeHome from "./pages/employee/EmployeeHome";
@@ -45,7 +48,7 @@ import Commissions from "./pages/agent/Commissions";
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       <Toaster position="top-right" reverseOrder={false} />
 
       <Routes>
@@ -82,6 +85,10 @@ function App() {
           <Route path="/dashboard/insurance/claims" element={<Claims />} />
           <Route path="/claims/:id" element={<Claims />} />
           <Route path="/dashboard/insurance/notices" element={<Notice />} />
+          
+          {/* ✅ NEW: ADDED REPORTS AND COMMISSIONS ROUTES HERE */}
+          <Route path="/dashboard/insurance/reports" element={<InsuranceReports />} />
+          <Route path="/dashboard/insurance/commissions" element={<AdminCommissions />} />
 
           {/* EMPLOYEE */}
           <Route path="/employee/home" element={<EmployeeHome />} />
@@ -102,8 +109,13 @@ function App() {
 
         </Route>
 
-        {/* Catch-all (404) */}
-        <Route path="*" element={<h1>404 - Page Not Found</h1>} />
+        {/* Catch-all (404) Styled nicely */}
+        <Route path="*" element={
+          <div className="flex flex-col items-center justify-center h-[80vh]">
+            <h1 className="text-6xl font-black text-slate-300">404</h1>
+            <p className="text-xl font-bold text-slate-600 mt-4">Page Not Found</p>
+          </div>
+        } />
       </Routes>
     </div>
   );
