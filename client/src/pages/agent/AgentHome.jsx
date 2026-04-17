@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ShieldCheck, FileText, Clock, DollarSign, TrendingUp } from "lucide-react";
+import { ShieldCheck, FileText, Clock, DollarSign, TrendingUp, Activity, Wallet } from "lucide-react";
 import toast from "react-hot-toast";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -25,86 +25,110 @@ export default function AgentHome() {
   }, []);
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+    <div className="flex flex-col items-center justify-center min-h-[60vh] bg-slate-50 rounded-3xl">
+      <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
+      <p className="text-slate-500 font-bold animate-pulse">Loading Workspace...</p>
     </div>
   );
 
   const cards = [
-    { label: "Total Policies",  value: stats?.totalPolicies  ?? 0, icon: ShieldCheck, color: "text-emerald-600", bg: "bg-emerald-50" },
-    { label: "Active Policies", value: stats?.activePolicies ?? 0, icon: TrendingUp,  color: "text-blue-600",    bg: "bg-blue-50" },
-    { label: "Total Claims",    value: stats?.totalClaims    ?? 0, icon: FileText,    color: "text-purple-600",  bg: "bg-purple-50" },
-    { label: "Pending Claims",  value: stats?.pendingClaims  ?? 0, icon: Clock,       color: "text-amber-600",   bg: "bg-amber-50" },
+    { label: "Total Policies",  value: stats?.totalPolicies  ?? 0, icon: ShieldCheck, color: "text-indigo-600", bg: "bg-indigo-100" },
+    { label: "Active Policies", value: stats?.activePolicies ?? 0, icon: TrendingUp,  color: "text-emerald-600", bg: "bg-emerald-100" },
+    { label: "Total Claims",    value: stats?.totalClaims    ?? 0, icon: FileText,    color: "text-rose-600", bg: "bg-rose-100" },
+    { label: "Claims Processing", value: stats?.pendingClaims  ?? 0, icon: Clock,     color: "text-amber-600", bg: "bg-amber-100" },
   ];
 
   const statusBadge = (s) => {
-    if (s === "Active")   return "bg-green-100 text-green-700";
-    if (s === "Expired")  return "bg-red-100 text-red-700";
-    if (s === "Lapsed")   return "bg-amber-100 text-amber-700";
-    return "bg-gray-100 text-gray-700";
+    if (s === "Active")   return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    if (s === "Inactive") return "bg-slate-100 text-slate-600 border-slate-200";
+    if (s === "Expired")  return "bg-rose-50 text-rose-700 border-rose-200";
+    if (s === "Lapsed")   return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-slate-100 text-slate-700 border-slate-200";
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-slate-50 min-h-screen p-4 sm:p-6 lg:p-8 rounded-3xl">
       <div>
-        <h2 className="text-2xl font-bold text-gray-800">Welcome, {user.name || "Agent"} 👋</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Your insurance portfolio overview</p>
+        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <Activity className="w-8 h-8 text-indigo-600" /> Welcome, {user.name || "Agent"} 👋
+        </h2>
+        <p className="text-sm text-slate-500 mt-1 font-medium">Your insurance portfolio and commission overview.</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Wallet / Commission Banner */}
+      <div className="bg-gradient-to-br from-indigo-600 to-blue-800 rounded-3xl p-8 text-white shadow-xl shadow-indigo-600/20 relative overflow-hidden group">
+        <div className="absolute right-0 top-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-500">
+          <Wallet className="w-32 h-32" />
+        </div>
+        <div className="relative z-10">
+          <p className="text-indigo-200 font-bold tracking-widest text-sm uppercase mb-2">Total Commission Earned</p>
+          <h1 className="text-5xl font-black mb-4">₹{(stats?.totalCommission || 0).toLocaleString("en-IN")}</h1>
+          
+          <div className="flex gap-4">
+            <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
+              <span className="font-bold text-sm text-emerald-300">Paid:</span>
+              <span className="font-bold text-sm ml-2">₹{(stats?.paidCommission || 0).toLocaleString("en-IN")}</span>
+            </div>
+            <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
+              <span className="font-bold text-sm text-amber-300">Pending:</span>
+              <span className="font-bold text-sm ml-2">₹{((stats?.totalCommission || 0) - (stats?.paidCommission || 0)).toLocaleString("en-IN")}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         {cards.map(c => {
           const Icon = c.icon;
           return (
-            <div key={c.label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
-              <div className={`${c.bg} p-3 rounded-full`}><Icon className={`w-5 h-5 ${c.color}`} /></div>
-              <div>
-                <p className="text-xs text-gray-500">{c.label}</p>
-                <p className="text-2xl font-bold text-gray-800">{c.value}</p>
+            <div key={c.label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 hover:shadow-md transition-shadow group">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{c.label}</p>
+                  <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">{c.value}</h3>
+                </div>
+                <div className={`${c.bg} p-3 rounded-xl transition-transform duration-300 group-hover:scale-110`}>
+                  <Icon className={`w-6 h-6 ${c.color}`} />
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Commission Banner */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 rounded-xl p-5 text-white flex items-center justify-between">
-        <div>
-          <p className="text-emerald-100 text-sm">Total Commission Earned</p>
-          <p className="text-3xl font-bold mt-1">₹{(stats?.totalCommission || 0).toLocaleString("en-IN")}</p>
-          <p className="text-emerald-200 text-xs mt-1">
-            Paid: ₹{(stats?.paidCommission || 0).toLocaleString("en-IN")} &nbsp;·&nbsp;
-            Pending: ₹{((stats?.totalCommission || 0) - (stats?.paidCommission || 0)).toLocaleString("en-IN")}
-          </p>
+      {/* Recent Policies Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
+          <h3 className="font-extrabold text-slate-800 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-indigo-500" /> Recent Policy Sales
+          </h3>
         </div>
-        <DollarSign className="w-12 h-12 text-emerald-200" />
-      </div>
-
-      {/* Recent Policies */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-        <h3 className="font-semibold text-gray-700 mb-4">Recent Policies</h3>
         {recent.length === 0 ? (
-          <p className="text-gray-400 text-sm text-center py-6">No policies added yet.</p>
+          <div className="text-center py-16 text-slate-400 font-medium">
+            No policies added yet. Head to "My Policies" to issue your first one!
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-gray-400 border-b">
-                  <th className="pb-2 font-medium">Policy No.</th>
-                  <th className="pb-2 font-medium">Client</th>
-                  <th className="pb-2 font-medium">Type</th>
-                  <th className="pb-2 font-medium">Premium</th>
-                  <th className="pb-2 font-medium">Status</th>
+            <table className="w-full text-sm text-left">
+              <thead className="bg-white border-b border-slate-100">
+                <tr>
+                  <th className="px-5 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider">Policy No.</th>
+                  <th className="px-5 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider">Client Name</th>
+                  <th className="px-5 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider">Type</th>
+                  <th className="px-5 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider">Premium</th>
+                  <th className="px-5 py-4 text-xs font-extrabold text-slate-500 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-50">
                 {recent.map(p => (
-                  <tr key={p._id} className="border-b last:border-0 hover:bg-gray-50">
-                    <td className="py-2 font-mono text-xs text-gray-600">{p.policyNumber}</td>
-                    <td className="py-2 font-medium text-gray-800">{p.clientName}</td>
-                    <td className="py-2 text-gray-600">{p.insuranceType}</td>
-                    <td className="py-2 text-gray-800 font-medium">₹{p.premiumAmount?.toLocaleString("en-IN")}</td>
-                    <td className="py-2">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusBadge(p.status)}`}>{p.status}</span>
+                  <tr key={p._id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-4 font-mono font-bold text-slate-600 text-xs bg-slate-100 inline-block m-3 rounded px-2 py-1 border border-slate-200">{p.policyNumber}</td>
+                    <td className="px-5 py-4 font-bold text-slate-800">{p.clientName}</td>
+                    <td className="px-5 py-4 font-medium text-slate-600">{p.insuranceType}</td>
+                    <td className="px-5 py-4 font-black text-indigo-600">₹{p.premiumAmount?.toLocaleString("en-IN")}</td>
+                    <td className="px-5 py-4">
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold border shadow-sm ${statusBadge(p.status)}`}>{p.status}</span>
                     </td>
                   </tr>
                 ))}

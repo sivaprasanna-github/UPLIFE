@@ -18,6 +18,9 @@ import insuranceNoticeRoutes from './routes/insuranceNoticeRoutes.js';
 
 // ✅ NEW: Import the new loan application tracking routes
 import loanRoutesUsers from './routes/loanRoutesusers.js';
+import loanTrackingRoutes from './routes/loanTrackingRoutes.js';
+ 
+// ── ADD THIS LINE in the Routes section (after loanUserRoutes) ────────────────
 
 // Load Environment Variables & Connect to DB
 dotenv.config();
@@ -56,7 +59,7 @@ app.use('/api/agent', agentRoutes);
 app.use('/api/insurance/admin', insuranceAdminRoutes);
 app.use('/api/insurance/customers', insuranceCustomerRoutes);
 app.use('/api/insurance/notices', insuranceNoticeRoutes);
-
+app.use('/api/loan/tracking', loanTrackingRoutes);
 // ✅ FIX 1 & 2: Routing Order is VERY Important here!
 // 1. First check the specific /applications routes
 app.use('/api/loan/users', loanRoutesUsers); 

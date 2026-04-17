@@ -15,6 +15,7 @@ const getStatusBadge = (status) => {
 
 const EmployeeLoanStatus = () => {
   const [loans, setLoans] = useState([]);
+  const [loanUsers, setLoanUsers] = useState([]); // State to hold dropdown clients
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -27,7 +28,31 @@ const EmployeeLoanStatus = () => {
 
   useEffect(() => {
     fetchMyLoans();
+    fetchLoanUsers(); // Fetch the dropdown clients on mount
   }, []);
+
+  // Fetch the registered loan users/clients for the dropdown
+  const fetchLoanUsers = async () => {
+    try {
+      const userStr = sessionStorage.getItem("user");
+      // Adjust this based on where you store your JWT token in your app:
+      const token = sessionStorage.getItem("token") || (userStr && JSON.parse(userStr).token); 
+      
+      const API_URL = import.meta.env.VITE_API_URL;
+      
+      // Because your LoanUser route is protected, we must pass the authorization header
+      const response = await axios.get(`${API_URL}/loan/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      setLoanUsers(response.data);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      toast.error("Failed to load clients list");
+    }
+  };
 
   const fetchMyLoans = async () => {
     try {
@@ -154,7 +179,7 @@ const EmployeeLoanStatus = () => {
                 <tr><td colSpan="5" className="p-8 text-center text-slate-500"><Loader2 className="animate-spin mx-auto" size={24} /></td></tr>
               ) : filteredLoans.length > 0 ? (
                 filteredLoans.map((loan) => (
-                  <tr key={loan._id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm">
+                  <tr key={loan._id || loan.loanId} className="border-b border-slate-100 hover:bg-slate-50 transition-colors text-sm">
                     <td className="p-4 font-medium text-blue-600">{loan.loanId}</td>
                     <td className="p-4 text-slate-800 font-medium">{loan.client}</td>
                     <td className="p-4">
@@ -195,16 +220,28 @@ const EmployeeLoanStatus = () => {
             </h2>
             
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* FETCHED CLIENT DROPDOWN */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Client Name</label>
-                <input 
+                <select 
                   required
-                  type="text" 
                   className="w-full p-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.client}
                   onChange={(e) => setFormData({...formData, client: e.target.value})}
-                />
+                >
+                  <option value="" disabled>Select a Client</option>
+                  {loanUsers.length > 0 ? (
+                    loanUsers.map((user) => (
+                      <option key={user._id} value={user.fullName}>
+                        {user.fullName} {user.phone ? `(${user.phone})` : ''}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>No clients found. Add a client first.</option>
+                  )}
+                </select>
               </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Loan Type</label>
                 <select 
@@ -218,14 +255,16 @@ const EmployeeLoanStatus = () => {
                   <option value="Personal Loan">Personal Loan</option>
                   <option value="Car Loan">Car Loan</option>
                   <option value="Business Loan">Business Loan</option>
+                  <option value="Education Loan">Education Loan</option>
                 </select>
               </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1">Amount</label>
                 <input 
                   required
                   type="text" 
-                  placeholder="e.g. $50,000"
+                  placeholder="e.g. 50000"
                   className="w-full p-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.amount}
                   onChange={(e) => setFormData({...formData, amount: e.target.value})}
